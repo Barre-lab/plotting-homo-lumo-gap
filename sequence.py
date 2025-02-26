@@ -6,7 +6,6 @@ from typing import List
 
 # Third-party libraries
 import numpy as np
-import scm.plams
 
 # Local libraries
 from support import find_paths
@@ -70,7 +69,7 @@ class calculation_sequence:
 
             # Finding the single-point output file and path to fragment
             if index == 0:
-                output_file, fragment_path = find_paths(calculation, accepted_outputfiles)
+                output_file, fragment_path = find_paths(foldername + calculation, accepted_outputfiles)
 
             # Finding the connection table of the fragment
             connection_table = get_connections(foldername + calculation + fragment_path)

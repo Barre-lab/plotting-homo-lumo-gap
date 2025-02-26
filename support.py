@@ -16,16 +16,20 @@ def find_paths(directory, filenames, str_fragment=".xyz"):
     path_to_output = []
     path_to_fragment = []
 
+    output_found, fragment_found = False, False
+
     for dir_path, _, file_names in os.walk(directory):
         for file in file_names:
             if file in filenames:
                 path_to_output.append(os.path.join(dir_path, file))
+                output_found = True
             if file.endswith(str_fragment) and not file.startswith("output"):
-                path_to_fragment.append((dir_path))
+                path_to_fragment.append(dir_path)
+                fragment_found = True
 
-    if not path_to_output:
+    if not output_found:
         raise ValueError(f"No path to outputfile found in: {directory}")
-    if not path_to_fragment:
+    if not fragment_found:
         raise ValueError(f"No path to fragment found in: {directory}")
 
     if len(path_to_output) > 1:
@@ -135,7 +139,7 @@ def find_input_type(args_input: list):
 
     check_folders = np.zeros(len(args_input))
     for index, folder in enumerate(args_input):
-        if folder.startswith("calculations") and folder.endswith("H2O"):
+        if folder.startswith("calculations"):
             check_folders[index] = True
         else:
             check_folders[index] = False

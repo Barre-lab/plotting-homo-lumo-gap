@@ -16,33 +16,25 @@ def parse_arguments():
             help="Input folder to compute homo-lumo gaps in")
 
     parser.add_argument(
-            "-t", "--type",
-            choices=["calculations", "sequence"],
-            default="calculations",
-            help="Input folder can be a calculation folder or a sequence of calculation folders")
-
-    parser.add_argument(
             "-l", "--labels",
             type=str,
             nargs="*",
             help="Labels of folders with calculations or sequences of folders with calculations")
 
     parser.add_argument(
-            "-w", "--what",
-            choices=["avg", "all"],
-            default="all",
-            help="Plot average gaps as function of N H2O or all values against frames")
+            "-avg", "--average",
+            action="store_true",
+            help="Plot average data as function of N H2O instead of all data against frames")
 
     parser.add_argument(
-            "-ho", "--how",
-            choices=["together", "separate"],
-            default="together",
-            help="Plot data in together in one graph or in separate sub graphs (only for -w: all)")
+            "-m", "--multi-plot",
+            action="store_true",
+            help="Enforce plottting data in multiple subgraphs instead of the default type")
 
     parser.add_argument(
             "-s", "--separate-states",
             action="store_true",
-            help="Separate data for state where fragment configuration has changed")
+            help="Separate data for states where the fragment configuration has changed")
 
     parser.add_argument(
             "-ma", "--moving-average",
