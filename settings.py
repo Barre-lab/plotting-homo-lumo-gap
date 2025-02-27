@@ -1,0 +1,17 @@
+# Standard libraries
+from dataclasses import dataclass
+from typing import ClassVar
+
+
+@dataclass
+class Settings:
+    """
+    This data-class is used to define and store plot settings which are not provided as arguments.
+    This includes things like the figure dimensions, colors, symbols font sizes etc.
+    """
+
+    symbols: ClassVar[list] = ["o", "v", "s", "^", "d", "p"]
+    colors: ClassVar[list] = ["blue", "orange", "limegreen", "red"]
+    figsize: ClassVar[tuple] = (4.5, 3.5)
+    axes_size: int = 10
+    tick_size: int = 9

@@ -15,7 +15,7 @@ from support import get_moving_average
 
 
 def plot_all_together(args: argparse.Namespace, input_type: str, accepted_files: List[str],
-                      colors: list, symbols: list) -> None:
+                      settings: classmethod) -> None:
     """
     Plots homo-lumo gaps and energies as a function of the frame number for all input
     sequences together in one graph
@@ -38,12 +38,14 @@ def plot_all_together(args: argparse.Namespace, input_type: str, accepted_files:
     handles_sequences = []
 
     # Initializing figure
-    plt.figure(figsize=(4.5, 3.4))
+    plt.figure(figsize=settings.figsize)
 
     # Looping over all the sequence with calculations to plot them
     for index, calc_sequence in enumerate(sequences):
 
         sequence = calculation_sequence(calc_sequence, accepted_files)
+
+        color = settings.colors[index]
 
         # Defining the label for sequence
         if args.labels:
@@ -55,54 +57,60 @@ def plot_all_together(args: argparse.Namespace, input_type: str, accepted_files:
 
         # Creating sequence handle for legend
         sequence_handle = Line2D([0], [0], marker="s", label=label,
-                                 color=colors[index], ms=5, ls="")
+                                 color=settings.colors[index], ms=5, ls="")
         handles_sequences.append(sequence_handle)
 
         # Moving average
         if args.moving_average and not args.separate_states:
             averaged_gaps = get_moving_average(sequence.gaps, args.moving_average)
 
-            plt.plot(sequence.frames, sequence.gaps, color=colors[index], alpha=0.1, lw=0.8)
-            plt.plot(sequence.frames, averaged_gaps, color=colors[index], lw=1.2,
-                     label=label+" (MA)")
+            plt.plot(sequence.frames, sequence.gaps, color=color, alpha=0.1, lw=0.8)
+            plt.plot(sequence.frames, averaged_gaps, color=color, lw=1.2, label=label+" (MA)")
 
         # Separating states
         elif args.separate_states and not args.moving_average:
 
             # Plotting the connecting lines
-            plt.plot(sequence.frames, sequence.gaps, color=colors[index], lw=0.4, zorder=1)
+            plt.plot(sequence.frames, sequence.gaps, color=color, lw=0.4, zorder=1)
 
             # Looping over each state to plot
-            fillcolors = np.array(["white", colors[index]])
+            fillcolors = np.array(["white", color])
 
             for subindex, state in enumerate(sequence.states):
                 fillcolor = fillcolors[subindex % 2]
+                symbol = settings.symbols[subindex]
 
-                plt.plot(sequence.frames[state], sequence.gaps[state], color=colors[index],
-                         marker=symbols[subindex], ms=5, ls="", markerfacecolor=fillcolor)
+                plt.plot(sequence.frames[state], sequence.gaps[state], color=color, marker=symbol,
+                         ms=5, ls="", markerfacecolor=fillcolor)
 
                 if len(sequences) == 1:
-                    state_handle = Line2D([0], [0], marker=symbols[subindex], color=colors[index],
-                                          label=f"State {subindex + 1}", markerfacecolor=fillcolor,
-                                          ls="", ms=5)
+                    state_handle = Line2D([0], [0], marker=symbol, label=f"State {subindex + 1}",
+                                          color=color, ls="", ms=5, markerfacecolor=fillcolor)
                     handles_states.append(state_handle)
 
         # No moving average and not separating states
         elif not args.separate_states and not args.moving_average:
-            plt.plot(sequence.frames, sequence.gaps, color=colors[index], lw=0.8, label=label)
+            plt.plot(sequence.frames, sequence.gaps, color=color, lw=0.8, label=label)
 
         else:
             raise ValueError("Combination of moving average and separating states is not supported")
 
+    # Defining font size for axis and ticks
+    fs = settings.axes_size
+    ts = settings.tick_size
+
     # Naming plot axis
-    plt.xlabel("Frame number")
-    plt.ylabel("Homo-lumo gap [eV]")
+    plt.xlabel("Frame number", fontsize=fs)
+    plt.ylabel("Homo-lumo gap [eV]", fontsize=fs)
+
+    # Specifying axis ticks
+    plt.tick_params(axis="both", labelsize=ts)
 
     # Including legend
     if handles_states:
-        plt.legend(handles=handles_states, fontsize=9, loc=args.legend_position, frameon=False)
+        plt.legend(handles=handles_states, fontsize=fs, loc=args.legend_position, frameon=False)
     elif len(sequences) > 1:
-        plt.legend(handles=handles_sequences, fontsize=9, loc=args.legend_position, frameon=False)
+        plt.legend(handles=handles_sequences, fontsize=fs, loc=args.legend_position, frameon=False)
 
     plt.tight_layout()
 
