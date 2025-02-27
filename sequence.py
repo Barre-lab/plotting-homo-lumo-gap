@@ -96,8 +96,7 @@ class calculation_sequence:
         self.energies = self.energies[order]
 
         # Updating the indices corresponding to each state using the sorted frame order
-        for state in self.states:
-            index = self.states.index(state)
+        for index, state in enumerate(self.states):
             ordered_state = np.argsort(order, kind="heapsort")[state]
             self.states[index] = ordered_state
 
@@ -108,8 +107,7 @@ class calculation_sequence:
         self.std_gaps = np.zeros(nstates)
         self.std_energies = np.zeros(nstates)
 
-        for state in self.states:
-            index = self.states.index(state)
+        for index, state in enumerate(self.states):
             self.avg_gaps[index] = np.average(self.gaps[state])
             self.avg_energies[index] = np.average(self.energies[state])
             self.std_gaps[index] = np.std(self.gaps[state])
