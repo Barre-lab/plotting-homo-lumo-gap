@@ -43,7 +43,7 @@ class calculation_sequence:
 
         # Finding the number of water molecules
         basename = os.path.basename(os.path.normpath(foldername))
-        self.nwater = re.search(r"\_(.*?)\_", basename).group(1)
+        self.nwater = int(re.search(r"\_(.*?)\_", basename).group(1))
 
         # Getting list of directories with calculations (ascending integer order)
         calculations = np.array([direc for direc in os.listdir(foldername) if

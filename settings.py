@@ -13,5 +13,5 @@ class Settings:
     symbols: ClassVar[list] = ["o", "v", "s", "^", "d", "p"]
     colors: ClassVar[list] = ["blue", "orange", "limegreen", "red"]
     figsize: ClassVar[tuple] = (4.5, 3.5)
-    axes_size: int = 10
+    axes_size: int = 9
     tick_size: int = 9

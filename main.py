@@ -4,6 +4,7 @@
 from parser import parse_arguments
 from support import find_input_type
 from plotting import plot_all_together
+from plotting import plot_all_separate
 from settings import Settings
 
 
@@ -21,10 +22,19 @@ def main(args):
     # Plot settings (a separate class)
     plot_settings = Settings()
 
+    # Making two arguments mutually exclusive (should be done in parser)
+    if args.moving_average and args.separate_states:
+        raise ValueError("Combination of moving average and separating states is not supported")
+
+    # Plotting
     if input_type == "sequence" and not args.multi_plot:
         plot_all_together(args, input_type, accepted_files, plot_settings)
     elif input_type == "collection" and args.multi_plot:
         plot_all_together(args, input_type, accepted_files, plot_settings)
+    elif input_type == "collection":
+        plot_all_separate(args, input_type, accepted_files, plot_settings)
+    elif input_type == "sequence" and args.multi_plot:
+        plot_all_separate(args, input_type, accepted_files, plot_settings)
     else:
         print("Not plotting anything")
 

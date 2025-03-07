@@ -1,6 +1,7 @@
 # Standard libraries
 import os
 import re
+import time
 
 # Third-party libraries
 import scm.plams
@@ -139,16 +140,19 @@ def find_input_type(args_input: list):
 
     check_folders = np.zeros(len(args_input))
     for index, folder in enumerate(args_input):
-        if folder.startswith("calculations"):
+        basename = os.path.basename(os.path.normpath(folder))
+
+        if basename.startswith("calculations"):
             check_folders[index] = True
         else:
             check_folders[index] = False
 
+    if len(set(check_folders)) != 1:
+        raise ValueError("Input is a mix of calculation sequences and collection of sequences")
+
     if all(check_folders):
         input_type = "sequence"
-    elif not all(check_folders):
-        input_type = "collection"
     else:
-        raise ValueError("Input is a mix of calculation sequences and collection of sequences")
+        input_type = "collection"
 
     return input_type
