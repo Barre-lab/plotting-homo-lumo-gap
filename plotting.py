@@ -1,7 +1,6 @@
 # standard libraries
 import os
 import re
-import time
 import argparse
 from typing import List
 
@@ -275,3 +274,29 @@ def plot_all_separate(args: argparse.Namespace, input_type: str, accepted_files:
         plt.savefig(args.plot_name)
 
     plt.show()
+
+
+def plot_averages(args: argparse.Namespace, input_type: str, accepted_file: List[str],
+                  settings: classmethod) -> None:
+    """
+    Plots average homo-lumo gaps and energies as a function of the number water molecules for each
+    sequence in all the input collections
+    """
+
+    # Making sure input type is collection
+    if input_type != "collection":
+        raise ValueError("Cannot plot averages for input type: {input_type}")
+
+    # Initializing plot
+    plt.figure(figsize=settings.figsize)
+
+    # Initializing legends for different states and sequences
+    handles_collections = []
+
+    # Looping over the collections to plot the average of each sequence
+    for index, collection in enumerate(args.input):
+
+        color = settings.color[index]
+
+        
+        sequence = calculation_sequence(collection, accepted_file)
