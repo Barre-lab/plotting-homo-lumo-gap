@@ -47,7 +47,7 @@ class calculation_sequence:
 
         # Getting list of directories with calculations (ascending integer order)
         calculations = np.array([direc for direc in os.listdir(foldername) if
-                                 os.path.isdir(foldername + direc)])
+                                 os.path.isdir(foldername + direc) and direc.isnumeric()])
 
         int_calculations = np.array([int(direc) for direc in calculations])
         order_calculations = np.argsort(int_calculations, kind="heapsort")

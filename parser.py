@@ -32,6 +32,11 @@ def parse_arguments():
             help="Enforce plottting data in multiple subgraphs instead of the default type")
 
     parser.add_argument(
+            "-v", "--vertical",
+            action="store_true",
+            help="Transpose columns and rows of subplots, making them extend vertically")
+
+    parser.add_argument(
             "-s", "--separate-states",
             action="store_true",
             help="Separate data for states where the fragment configuration has changed")
@@ -46,6 +51,11 @@ def parse_arguments():
             "-e", "--include-energies",
             action="store_true",
             help="Include total energies in the plot(s)")
+
+    parser.add_argument(
+            "-ln", "--legend-none",
+            action="store_true",
+            help="Do not include legend in plot")
 
     parser.add_argument(
             "-lp", "--legend-position",

@@ -104,10 +104,10 @@ def plot_all_together(args: argparse.Namespace, input_type: str, accepted_files:
     plt.tick_params(axis="both", labelsize=ts)
 
     # Including legend
-    if handles_states:
+    if handles_states and not args.legend_none:
         plt.legend(handles=handles_states, fontsize=fs, loc=args.legend_position, frameon=False,
                    ncol=args.legend_columns, bbox_to_anchor=args.legend_position_coords)
-    elif len(sequences) > 1:
+    elif len(sequences) > 1 and not args.legend_none:
         plt.legend(handles=handles_sequences, fontsize=fs, loc=args.legend_position, frameon=False,
                    ncol=args.legend_columns, bbox_to_anchor=args.legend_position_coords)
 
@@ -137,8 +137,12 @@ def plot_all_separate(args: argparse.Namespace, input_type: str, accepted_files:
 
         # Finding index of axs to plot in
         ax_index = all_water.index(sequence.nwater)
+        ncols = -(-len(all_water) // 2)
         if axs.ndim > 1:
-            ax_index = (ax_index // 2, ax_index % 2)
+            if args.vertical:
+                ax_index = (ax_index // ncols, ax_index % ncols)
+            else:
+                ax_index = (ax_index // 2, ax_index % 2)
 
         # Plotting data in correct sub-graph
         if args.moving_average:
@@ -179,8 +183,12 @@ def plot_all_separate(args: argparse.Namespace, input_type: str, accepted_files:
         all_water.sort()
 
         # Initializing figure with sub-figures (one sub-figure for each water amount)
-        nrows = -(-len(all_water) // 2)
-        fig, axs = plt.subplots(nrows=nrows, ncols=2, figsize=(6, 2*nrows))
+        if args.vertical:
+            ncols = -(-len(all_water) // 2)
+            fig, axs = plt.subplots(nrows=2, ncols=ncols, figsize=(3*ncols, 4))
+        else:
+            nrows = -(-len(all_water) // 2)
+            fig, axs = plt.subplots(nrows=nrows, ncols=2, figsize=(6, 2*nrows))
 
         # Initializing handles for legend
         handles_collections = []
@@ -214,14 +222,23 @@ def plot_all_separate(args: argparse.Namespace, input_type: str, accepted_files:
     elif input_type == "sequence":
 
         # Initializing figure with sub-figures
-        nrows = -(-len(args.input) // 2)
-        fig, axs = plt.subplots(nrows=nrows, ncols=2, figsize=(6, 2*nrows))
+        if args.vertical:
+            ncols = -(-len(all_water) // 2)
+            fig, axs = plt.subplots(nrows=2, ncols=ncols, figsize=(3*ncols, 4))
+        else:
+            nrows = -(-len(all_water) // 2)
+            fig, axs = plt.subplots(nrows=nrows, ncols=2, figsize=(6, 2*nrows))
 
         # Finding all number of waters in the input sequences
         all_water = []
         for sequence in args.input:
             all_water.append(int(re.search(r"\_(.*?)\_", sequence).group(1)))
         all_water.sort()
+
+        ncols = -(-len(all_water) // 2)
+        fig, axs = plt.subplots(nrows=2, ncols=ncols, figsize=(3*ncols, 4))
+
+        sequences = args.input
 
         for sequence in sequences:
             _plot_sequence_data_in_subplot(sequence, axs, all_water, color=settings.colors[0])
