@@ -45,7 +45,7 @@ def plot_all_together(args: argparse.Namespace, input_type: str, accepted_files:
     # Looping over all the sequence with calculations to plot them
     for index, calc_sequence in enumerate(sequences):
 
-        sequence = calculation_sequence(calc_sequence, accepted_files)
+        sequence = calculation_sequence(calc_sequence, accepted_files, args.ascending_gaps)
 
         color = settings.colors[index]
 
@@ -138,6 +138,11 @@ def plot_all_together(args: argparse.Namespace, input_type: str, accepted_files:
     if args.include_energies:
         ax2.tick_params(axis="both", labelsize=ts)
 
+    # Removing ticks and label from x-axis in case of ascending gaps
+    if args.ascending_gaps:
+        ax1.tick_params(bottom=False, labelbottom=False)
+        ax1.set_xlabel("")
+
     # Including legend
     plt.legend(handles=handles, fontsize=fs, loc=args.legend_position, frameon=False,
                ncol=args.legend_columns, bbox_to_anchor=args.legend_position_coords)
@@ -164,7 +169,7 @@ def plot_all_separate(args: argparse.Namespace, input_type: str, accepted_files:
         """
 
         # Initializing sequence class (which gets all data)
-        sequence = calculation_sequence(sequence, accepted_files)
+        sequence = calculation_sequence(sequence, accepted_files, args.ascending_gaps)
 
         # Finding index of axs to plot in
         ax_index = all_water.index(sequence.nwater)
@@ -338,6 +343,10 @@ def plot_all_separate(args: argparse.Namespace, input_type: str, accepted_files:
         else:
             ax.yaxis.set_tick_params(labelleft=True, labelsize=ts)
 
+        if args.ascending_gaps:
+            ax.tick_params(bottom=False, labelbottom=False)
+            ax.set_xlabel("")
+
     # Setting equal y-range for all subplots
     for ax in axs.flat:
         ax.set_ylim(min_yrange, max_yrange)
@@ -379,12 +388,18 @@ def plot_averages(args: argparse.Namespace, input_type: str, accepted_file: List
     plt.figure(figsize=settings.figsize)
 
     # Initializing legends for different states and sequences
-    handles_collections = []
+    handles = []
 
     # Looping over the collections to plot the average of each sequence
     for index, collection in enumerate(args.input):
 
         color = settings.color[index]
 
-        
         sequence = calculation_sequence(collection, accepted_file)
+
+        # Plotting the average gaps with connecting lines
+        plt.plot(sequence.nwater, sequence.avg_gaps, color=color, marker="o", ls="dashed", lw=1, ms=3)
+
+        # Plotting error bars in the average gaps
+        plt.errorbar(sequence.nwater, sequence.avg_gaps, yerr=sequence.std_gaps, color=color,
+                     alpha=0.75, lw=0.4, ls="", capsize=2, markeredgewidth=0.4)
