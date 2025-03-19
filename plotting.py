@@ -30,15 +30,16 @@ def plot_all_together(args: argparse.Namespace, input_type: str, accepted_files:
                      direc.startswith("calculations")]
     elif input_type == "sequence":
         sequences = args.input
+        if len(sequences) > 1 and args.include_energies:
+            raise ValueError("Cannot plot multiple sequences with energies in one graph")
     else:
         raise ValueError(f"Unknown input type: {input_type}")
 
-    # Initializing legends for different states and sequences
-    handles_states = []
-    handles_sequences = []
+    # Initializing legend handles
+    handles = []
 
     # Initializing figure
-    plt.figure(figsize=settings.figsize)
+    fig, ax1 = plt.subplots(figsize=settings.figsize)
 
     # Looping over all the sequence with calculations to plot them
     for index, calc_sequence in enumerate(sequences):
@@ -56,9 +57,10 @@ def plot_all_together(args: argparse.Namespace, input_type: str, accepted_files:
             label = f"{sequence.nwater} H2O"
 
         # Creating sequence handle for legend
-        sequence_handle = Line2D([0], [0], marker="s", label=label,
-                                 color=settings.colors[index], ms=5, ls="")
-        handles_sequences.append(sequence_handle)
+        if len(sequences) > 1:
+            handle = Line2D([0], [0], marker="s", label=label,
+                            color=settings.colors[index], ms=5, ls="")
+            handles.append(handle)
 
         # Moving average
         if args.moving_average:
@@ -71,47 +73,74 @@ def plot_all_together(args: argparse.Namespace, input_type: str, accepted_files:
         elif args.separate_states:
 
             # Plotting the connecting lines
-            plt.plot(sequence.frames, sequence.gaps, color=color, lw=0.4, zorder=1)
+            ax1.plot(sequence.frames, sequence.gaps, color=color, lw=0.4, zorder=1)
+            if args.include_energies:
+                ax2 = ax1.twinx()
+                color_energies = settings.colors[1]
+                ax2.plot(sequence.frames, sequence.energies, color=color_energies, lw=0.4, zorder=1)
 
             # Looping over each state to plot
-            fillcolors = np.array(["white", color])
+            fillcolors_gaps = np.array(["white", color])
+            fillcolors_energies = np.array(["white", color_energies])
 
             for subindex, state in enumerate(sequence.states):
-                fillcolor = fillcolors[subindex % 2]
+                fillcolor = fillcolors_gaps[subindex % 2]
                 symbol = settings.symbols[subindex]
 
-                plt.plot(sequence.frames[state], sequence.gaps[state], color=color, marker=symbol,
+                ax1.plot(sequence.frames[state], sequence.gaps[state], color=color, marker=symbol,
                          ms=5, ls="", markerfacecolor=fillcolor)
 
-                if len(sequences) == 1:
-                    state_handle = Line2D([0], [0], marker=symbol, label=f"State {subindex + 1}",
-                                          color=color, ls="", ms=5, markerfacecolor=fillcolor)
-                    handles_states.append(state_handle)
+                # Including energies
+                if args.include_energies:
+                    fillcolor_energies = fillcolors_energies[subindex % 2]
+                    ax2.plot(sequence.frames[state], sequence.energies[state], marker=symbol,
+                             color=color_energies, ms=5, ls="", markerfacecolor=fillcolor_energies)
+
+                # Legend for states
+                elif len(sequences) == 1:
+                    handle = Line2D([0], [0], marker=symbol, label=f"State {subindex + 1}",
+                                    color=color, ls="", ms=5, markerfacecolor=fillcolor)
+                    handles.append(handle)
+
+        # Including the energies
+        elif args.include_energies and not args.separate_states:
+
+            plt.plot(sequence.frames, sequence.gaps, settings.colors[0], lw=0.8, label=label)
+            ax2 = ax1.twinx()
+            ax2.plot(sequence.frames, sequence.energies, settings.colors[1], lw=0.8, label=label)
 
         # No moving average and not separating states
         else:
             plt.plot(sequence.frames, sequence.gaps, color=color, lw=0.8, label=label)
+
+    # Legend for Homo-Lumo gap and energies
+    if args.include_energies:
+        handles.append(Line2D([0], [0], marker="s", label="Gap", c=settings.colors[0], ls="", ms=5))
+        handles.append(Line2D([0], [0], marker="s", label="Energy", c=settings.colors[1], ls="", ms=5))
 
     # Defining font size for axis and ticks
     fs = settings.axes_size
     ts = settings.tick_size
 
     # Naming plot axis
-    plt.xlabel("Frame number", fontsize=fs)
-    plt.ylabel("Homo-lumo gap [eV]", fontsize=fs)
+    ax1.set_xlabel("Frame number", fontsize=fs)
+    ax1.set_ylabel("Homo-lumo gap [eV]", fontsize=fs)
+    if args.include_energies:
+        ax2.set_ylabel("Total energy [eV]", fontsize=fs)
+        offset = ax2.get_yticks()[1]
+        ax2.ticklabel_format(axis="y", style="plain", useOffset=offset, useMathText=True)
+        ax2.yaxis.get_offset_text().set(fontsize=ts)
 
-    # Specifying axis ticks
-    plt.tick_params(axis="both", labelsize=ts)
+    # Specifying axis tickss
+    ax1.tick_params(axis="both", labelsize=ts)
+    if args.include_energies:
+        ax2.tick_params(axis="both", labelsize=ts)
 
     # Including legend
-    if handles_states and not args.legend_none:
-        plt.legend(handles=handles_states, fontsize=fs, loc=args.legend_position, frameon=False,
-                   ncol=args.legend_columns, bbox_to_anchor=args.legend_position_coords)
-    elif len(sequences) > 1 and not args.legend_none:
-        plt.legend(handles=handles_sequences, fontsize=fs, loc=args.legend_position, frameon=False,
-                   ncol=args.legend_columns, bbox_to_anchor=args.legend_position_coords)
+    plt.legend(handles=handles, fontsize=fs, loc=args.legend_position, frameon=False,
+               ncol=args.legend_columns, bbox_to_anchor=args.legend_position_coords)
 
-    plt.tight_layout()
+    fig.tight_layout()
 
     # Saving plot
     if args.plot_name:

@@ -26,6 +26,9 @@ def main(args):
     if args.moving_average and args.separate_states:
         raise ValueError("Combination of moving average and separating states is not supported")
 
+    if args.moving_average and args.include_energies:
+        raise ValueError("Combination of moving average and including energies is not supported")
+
     # Plotting
     if input_type == "sequence" and not args.multi_plot:
         plot_all_together(args, input_type, accepted_files, plot_settings)
