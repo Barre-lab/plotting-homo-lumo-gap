@@ -331,6 +331,7 @@ def plot_all_separate(args: argparse.Namespace, input_type: str, accepted_files:
             max_yrange = max(ax.get_ylim()[1], max_yrange)
         else:
             ax.set_visible(False)
+            ax2.set_visible(False)
 
         if args.include_energies:
             ax2.set_ylabel("Total energy [eV]", fontsize=fs)
@@ -393,13 +394,67 @@ def plot_averages(args: argparse.Namespace, input_type: str, accepted_file: List
     # Looping over the collections to plot the average of each sequence
     for index, collection in enumerate(args.input):
 
-        color = settings.color[index]
+        color = settings.colors[index]
 
-        sequence = calculation_sequence(collection, accepted_file)
+        # Finding each sequence in collection
+        sequences = [collection + direc for direc in os.listdir(collection) if
+                     direc.startswith("calculations")]
+
+        # Initializing data arrays
+        nsequences = len(sequences)
+        waters = np.zeros(nsequences, dtype=int)
+        avg_gaps = np.zeros(nsequences)
+        std_gaps = np.zeros(nsequences)
+
+        # Looping over each sequence in collection
+        for sub_index, calc_sequence in enumerate(sequences):
+            sequence = calculation_sequence(calc_sequence, accepted_file)
+            waters[sub_index] = sequence.nwater
+            avg_gaps[sub_index] = np.average(sequence.gaps)
+            std_gaps[sub_index] = np.std(sequence.gaps)
+
+        # Ordering waters and avg gaps in ascending water order
+        order = np.argsort(waters, kind="heapsort")
+        waters = waters[order]
+        avg_gaps = avg_gaps[order]
+        std_gaps = std_gaps[order]
 
         # Plotting the average gaps with connecting lines
-        plt.plot(sequence.nwater, sequence.avg_gaps, color=color, marker="o", ls="dashed", lw=1, ms=3)
+        plt.plot(waters, avg_gaps, color=color, marker="o", ls="dashed", lw=1, ms=3)
 
         # Plotting error bars in the average gaps
-        plt.errorbar(sequence.nwater, sequence.avg_gaps, yerr=sequence.std_gaps, color=color,
-                     alpha=0.75, lw=0.4, ls="", capsize=2, markeredgewidth=0.4)
+        plt.errorbar(waters, avg_gaps, yerr=std_gaps, color=color, alpha=0.75, lw=0.4,
+                     ls="", capsize=2, markeredgewidth=0.4)
+
+        # Appending collection label to legend
+        if args.labels:
+            label = args.labels[index]
+        else:
+            basename = os.path.basename(os.path.normpath(collection))
+            label = basename.replace("-", " ").replace("_", " ")
+
+        handles.append(Line2D([0], [0], marker="s", label=label, c=color, ls="", ms=5))
+
+    # Naming plot axis
+    fs = settings.axes_size
+    ts = settings.tick_size
+    plt.xlabel("Number of H2O molecules", fontsize=fs)
+    plt.ylabel("Average Homo-Lumo gap [eV]", fontsize=fs)
+
+    # Specifying axis ticks
+    plt.tick_params(axis="both", which="major", labelsize=ts)
+    axes = plt.gca()
+    axes.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+
+    # Including legend
+    if not args.legend_none and len(args.input) > 1:
+        plt.legend(handles=handles, fontsize=fs, loc=args.legend_position, frameon=False,
+                   ncol=args.legend_columns, bbox_to_anchor=args.legend_position_coords)
+
+    plt.tight_layout()
+
+    # Saving plot
+    if args.plot_name:
+        plt.savefig(args.plot_name)
+
+    plt.show()

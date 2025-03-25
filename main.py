@@ -5,6 +5,7 @@ from parser import parse_arguments
 from support import find_input_type
 from plotting import plot_all_together
 from plotting import plot_all_separate
+from plotting import plot_averages
 from settings import Settings
 
 
@@ -32,6 +33,8 @@ def main(args):
     # Plotting
     if input_type == "sequence" and not args.multi_plot:
         plot_all_together(args, input_type, accepted_files, plot_settings)
+    elif input_type == "collection" and args.average:
+        plot_averages(args, input_type, accepted_files, plot_settings)
     elif input_type == "collection" and args.multi_plot:
         plot_all_together(args, input_type, accepted_files, plot_settings)
     elif input_type == "collection":
