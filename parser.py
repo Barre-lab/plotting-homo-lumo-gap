@@ -53,7 +53,7 @@ def parse_arguments():
             help="Include total energies in the plot(s)")
 
     parser.add_argument(
-            "-a", "--ascending-gaps",
+            "-a", "--ascending-energies",
             action="store_true",
             help="Gaps and energies are reordered in ascending gap order (to find correlation)")
 

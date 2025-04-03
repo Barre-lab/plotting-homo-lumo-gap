@@ -45,7 +45,7 @@ def plot_all_together(args: argparse.Namespace, input_type: str, accepted_files:
     # Looping over all the sequence with calculations to plot them
     for index, calc_sequence in enumerate(sequences):
 
-        sequence = calculation_sequence(calc_sequence, accepted_files, args.ascending_gaps)
+        sequence = calculation_sequence(calc_sequence, accepted_files, args.ascending_energies)
 
         color = settings.colors[index]
 
@@ -139,7 +139,7 @@ def plot_all_together(args: argparse.Namespace, input_type: str, accepted_files:
         ax2.tick_params(axis="both", labelsize=ts)
 
     # Removing ticks and label from x-axis in case of ascending gaps
-    if args.ascending_gaps:
+    if args.ascending_energies:
         ax1.tick_params(bottom=False, labelbottom=False)
         ax1.set_xlabel("")
 
@@ -169,7 +169,7 @@ def plot_all_separate(args: argparse.Namespace, input_type: str, accepted_files:
         """
 
         # Initializing sequence class (which gets all data)
-        sequence = calculation_sequence(sequence, accepted_files, args.ascending_gaps)
+        sequence = calculation_sequence(sequence, accepted_files, args.ascending_energies)
 
         # Finding index of axs to plot in
         ax_index = all_water.index(sequence.nwater)
@@ -344,7 +344,7 @@ def plot_all_separate(args: argparse.Namespace, input_type: str, accepted_files:
         else:
             ax.yaxis.set_tick_params(labelleft=True, labelsize=ts)
 
-        if args.ascending_gaps:
+        if args.ascending_energies:
             ax.tick_params(bottom=False, labelbottom=False)
             ax.set_xlabel("")
 

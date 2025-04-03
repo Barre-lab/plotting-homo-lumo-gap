@@ -36,7 +36,7 @@ class calculation_sequence:
     * std_energies -- list of standard deviations in total energies (for each state)
     """
 
-    def __init__(self, foldername: str, accepted_outputfiles: List[str], ascending_gaps=False):
+    def __init__(self, foldername: str, accepted_outputfiles: List[str], ascending_energies=False):
 
         if not foldername.endswith("/"):
             foldername += "/"
@@ -114,13 +114,13 @@ class calculation_sequence:
             self.std_energies[index] = np.std(self.energies[state])
 
         # Ordering gaps and energies in ascending gap order (neglecting frames)
-        if ascending_gaps:
-            gap_order = np.argsort(self.gaps, kind="heapsort")
+        if ascending_energies:
+            energy_order = np.argsort(self.energies, kind="heapsort")
 
             self.frames = np.linspace(0, 1, num=len(self.energies))
-            self.gaps = self.gaps[gap_order]
-            self.energies = self.energies[gap_order]
+            self.gaps = self.gaps[energy_order]
+            self.energies = self.energies[energy_order]
 
             for index, state in enumerate(self.states):
-                gap_ordered_state = np.argsort(gap_order, kind="heapsort")[state]
+                gap_ordered_state = np.argsort(energy_order, kind="heapsort")[state]
                 self.states[index] = gap_ordered_state
