@@ -17,24 +17,26 @@ def find_paths(directory, filenames, str_fragment=".xyz"):
     path_to_output = []
     path_to_fragment = []
 
-    output_found, fragment_found = False, False
-
     for dir_path, _, file_names in os.walk(directory):
         for file in file_names:
             if file in filenames:
                 path_to_output.append(os.path.join(dir_path, file))
-                output_found = True
             if file.endswith(str_fragment) and not file.startswith("output"):
                 path_to_fragment.append(dir_path)
-                fragment_found = True
 
-    if not output_found:
+    if not path_to_output:
         raise ValueError(f"No path to outputfile found in: {directory}")
-    if not fragment_found:
+    if not path_to_fragment:
         raise ValueError(f"No path to fragment found in: {directory}")
 
     if len(path_to_output) > 1:
-        raise ValueError(f"More than 1 path to output file ({filenames}) found: {path_to_output}")
+        for output_file in path_to_output.copy():
+            if "optimization" in output_file:
+                path_to_output.remove(output_file)
+
+        if len(path_to_output) > 1:
+            raise ValueError(f"More than 1 path to output file found: {path_to_output}")
+
     if len(path_to_fragment) > 1:
         raise ValueError(f"More than 1 path to fragment file found: {path_to_fragment}")
 
@@ -83,8 +85,8 @@ def get_data(output_file):
             if line.startswith("HOMO-LUMO"):
                 gap = line.split()[3]
                 found_gap = True
-            if line.startswith("Total Energy (eV)"):
-                energy = line.split()[3]
+            if line.startswith("Energy (hartree)"):
+                energy = float(line.split()[2]) * 27.211407953
                 found_energy = True
             if found_gap and found_energy:
                 break

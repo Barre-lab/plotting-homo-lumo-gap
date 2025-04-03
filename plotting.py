@@ -397,7 +397,7 @@ def plot_averages(args: argparse.Namespace, input_type: str, accepted_file: List
         color = settings.colors[index]
 
         # Finding each sequence in collection
-        sequences = [collection + direc for direc in os.listdir(collection) if
+        sequences = [os.path.join(collection, direc) for direc in os.listdir(collection) if
                      direc.startswith("calculations")]
 
         # Initializing data arrays
@@ -424,7 +424,7 @@ def plot_averages(args: argparse.Namespace, input_type: str, accepted_file: List
 
         # Plotting error bars in the average gaps
         plt.errorbar(waters, avg_gaps, yerr=std_gaps, color=color, alpha=0.75, lw=0.4,
-                     ls="", capsize=2, markeredgewidth=0.4)
+                     ls="", capsize=2, markeredgewidth=0.4, zorder=1)
 
         # Appending collection label to legend
         if args.labels:

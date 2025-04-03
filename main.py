@@ -15,7 +15,7 @@ def main(args):
     """
 
     # Accepted output files
-    accepted_files = ["single-point.out", "out"]
+    accepted_files = ["geometry_optimization.out", "single-point.out", "out"]
 
     # Input type: either "sequence" or "collection"
     input_type = find_input_type(args.input)
