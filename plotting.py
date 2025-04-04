@@ -230,9 +230,14 @@ def plot_all_separate(args: argparse.Namespace, input_type: str, accepted_files:
         # Getting a list with all the number of water molecules in the collections
         all_water = []
         for collection in args.input:
-            water_collection = [re.search(r"\_(.*?)\_", folder).group(1) for folder in
-                                os.listdir(collection) if
-                                folder.startswith(("calculations", "configurations"))]
+            try:
+                water_collection = [re.search(r"\_(.*?)\_", folder).group(1) for folder in
+                                    os.listdir(collection) if
+                                    folder.startswith(("calculations", "configurations"))]
+            except AttributeError:
+                water_collection = [re.search(r"\-(.*?)\-", folder).group(1) for folder in
+                                    os.listdir(collection) if
+                                    folder.startswith(("calculations", "configurations"))]
             for nwater in water_collection:
                 if int(nwater) not in all_water:
                     all_water.append(int(nwater))
