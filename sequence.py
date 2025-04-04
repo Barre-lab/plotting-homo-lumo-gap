@@ -89,13 +89,18 @@ class calculation_sequence:
             # Getting the frame number
             self.frames[index] = get_frame_number(foldername + calculation + fragment_path)
 
-        # Ordering the frames, gaps and energies in ascending frame order
-        order = np.argsort(self.frames, kind="heapsort")
-        self.frames = self.frames[order]
+        # Ordering the (frames), gaps and energies in ascending frame or ascending energy order
+        if ascending_energies:
+            order = np.argsort(self.energies, kind="heapsort")
+            self.frames = np.linspace(0, 1, num=len(self.energies))
+        else:
+            order = np.argsort(self.frames, kind="heapsort")
+            self.frames = self.frames[order]
+
         self.gaps = self.gaps[order]
         self.energies = self.energies[order]
 
-        # Updating the indices corresponding to each state using the sorted frame order
+        # Updating the indices corresponding to each state using the sorted order
         for index, state in enumerate(self.states):
             ordered_state = np.argsort(order, kind="heapsort")[state]
             self.states[index] = ordered_state
@@ -112,15 +117,3 @@ class calculation_sequence:
             self.avg_energies[index] = np.average(self.energies[state])
             self.std_gaps[index] = np.std(self.gaps[state])
             self.std_energies[index] = np.std(self.energies[state])
-
-        # Ordering gaps and energies in ascending gap order (neglecting frames)
-        if ascending_energies:
-            energy_order = np.argsort(self.energies, kind="heapsort")
-
-            self.frames = np.linspace(0, 1, num=len(self.energies))
-            self.gaps = self.gaps[energy_order]
-            self.energies = self.energies[energy_order]
-
-            for index, state in enumerate(self.states):
-                gap_ordered_state = np.argsort(energy_order, kind="heapsort")[state]
-                self.states[index] = gap_ordered_state

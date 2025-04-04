@@ -22,6 +22,11 @@ def parse_arguments():
             help="Labels of folders with calculations or sequences of folders with calculations")
 
     parser.add_argument(
+            "-p", "--points",
+            type=int,
+            help="Take only the p points with the lowest total energy for each sequence")
+
+    parser.add_argument(
             "-avg", "--average",
             action="store_true",
             help="Plot average data as function of N H2O instead of all data against frames")
@@ -45,7 +50,7 @@ def parse_arguments():
             "-ma", "--moving-average",
             type=int,
             default=None,
-            help="Npoints to include on both sides for moving averages (only for -w: all)")
+            help="Npoints to include on both sides for moving averages (not of -avg or -p)")
 
     parser.add_argument(
             "-e", "--include-energies",
@@ -55,7 +60,7 @@ def parse_arguments():
     parser.add_argument(
             "-a", "--ascending-energies",
             action="store_true",
-            help="Gaps and energies are reordered in ascending gap order (to find correlation)")
+            help="Gaps and energies are reordered in ascending energy order (to find correlation)")
 
     parser.add_argument(
             "-ln", "--legend-none",
