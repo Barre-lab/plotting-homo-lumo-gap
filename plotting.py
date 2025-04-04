@@ -388,11 +388,19 @@ def plot_averages(args: argparse.Namespace, input_type: str, accepted_file: List
     if input_type != "collection":
         raise ValueError("Cannot plot averages for input type: {input_type}")
 
+    if args.include_energies and len(args.input) > 1:
+        raise ValueError("Cannot include average energies for more than 1 collection")
+
     # Initializing plot
-    plt.figure(figsize=settings.figsize)
+    fig, ax1 = plt.subplots(figsize=settings.figsize)
 
     # Initializing legends for different states and sequences
     handles = []
+
+    # Legend for Homo-Lumo gap and energies
+    if args.include_energies:
+        handles.append(Line2D([0], [0], marker="s", label="Gap", c=settings.colors[0], ls="", ms=5))
+        handles.append(Line2D([0], [0], marker="s", label="Energy", c=settings.colors[1], ls="", ms=5))
 
     # Looping over the collections to plot the average of each sequence
     for index, collection in enumerate(args.input):
@@ -408,6 +416,8 @@ def plot_averages(args: argparse.Namespace, input_type: str, accepted_file: List
         waters = np.zeros(nsequences, dtype=int)
         avg_gaps = np.zeros(nsequences)
         std_gaps = np.zeros(nsequences)
+        avg_energies = np.zeros(nsequences)
+        std_energies = np.zeros(nsequences)
 
         # Looping over each sequence in collection
         for sub_index, calc_sequence in enumerate(sequences):
@@ -416,42 +426,65 @@ def plot_averages(args: argparse.Namespace, input_type: str, accepted_file: List
             waters[sub_index] = sequence.nwater
             avg_gaps[sub_index] = np.average(sequence.gaps)
             std_gaps[sub_index] = np.std(sequence.gaps)
+            avg_energies[sub_index] = np.average(sequence.energies)
+            std_energies[sub_index] = np.std(sequence.energies)
 
         # Ordering waters and avg gaps in ascending water order
         order = np.argsort(waters, kind="heapsort")
         waters = waters[order]
         avg_gaps = avg_gaps[order]
         std_gaps = std_gaps[order]
+        avg_energies = avg_energies[order]
+        std_energies = std_energies[order]
 
         # Plotting the average gaps with connecting lines
-        plt.plot(waters, avg_gaps, color=color, marker="o", ls="dashed", lw=1, ms=3)
+        ax1.plot(waters, avg_gaps, color=color, marker="o", ls="dashed", lw=1, ms=3)
 
         # Plotting error bars in the average gaps
-        plt.errorbar(waters, avg_gaps, yerr=std_gaps, color=color, alpha=0.75, lw=0.4,
+        ax1.errorbar(waters, avg_gaps, yerr=std_gaps, color=color, alpha=0.75, lw=0.4,
                      ls="", capsize=2, markeredgewidth=0.4, zorder=1)
 
-        # Appending collection label to legend
-        if args.labels:
-            label = args.labels[index]
-        else:
-            basename = os.path.basename(os.path.normpath(collection))
-            label = basename.replace("-", " ").replace("_", " ")
+        # Plotting average energies and standard deviations when requested
+        if args.include_energies:
+            ax2 = ax1.twinx()
 
-        handles.append(Line2D([0], [0], marker="s", label=label, c=color, ls="", ms=5))
+            ax2.plot(waters, avg_energies, color=settings.colors[1], marker="o",
+                     ls="dashed", lw=1, ms=3)
+
+            ax2.errorbar(waters, avg_energies, yerr=std_energies, color=settings.colors[1],
+                         alpha=0.75, lw=0.4, ls="", capsize=2, markeredgewidth=0.4, zorder=1)
+
+        # Appending collection label to legend
+        if not args.include_energies:
+            if args.labels:
+                label = args.labels[index]
+            else:
+                basename = os.path.basename(os.path.normpath(collection))
+                label = basename.replace("-", " ").replace("_", " ")
+
+            handles.append(Line2D([0], [0], marker="s", label=label, c=color, ls="", ms=5))
 
     # Naming plot axis
     fs = settings.axes_size
     ts = settings.tick_size
-    plt.xlabel("Number of H2O molecules", fontsize=fs)
-    plt.ylabel("Average Homo-Lumo gap [eV]", fontsize=fs)
+
+    ax1.set_xlabel("Number of H2O molecules", fontsize=fs)
+    ax1.set_ylabel("Average Homo-Lumo gap [eV]", fontsize=fs)
+    if args.include_energies:
+        ax2.set_ylabel("Average total energy [eV]", fontsize=fs)
+        offset = ax2.get_yticks()[1]
+        ax2.ticklabel_format(axis="y", style="plain", useOffset=offset, useMathText=True)
+        ax2.yaxis.get_offset_text().set(fontsize=ts)
 
     # Specifying axis ticks
-    plt.tick_params(axis="both", which="major", labelsize=ts)
+    ax1.tick_params(axis="both", which="major", labelsize=ts)
+    if args.include_energies:
+        ax2.tick_params(axis="both", labelsize=ts)
     axes = plt.gca()
     axes.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
     # Including legend
-    if not args.legend_none and len(args.input) > 1:
+    if (not args.legend_none and len(args.input)) > 1 or args.include_energies:
         plt.legend(handles=handles, fontsize=fs, loc=args.legend_position, frameon=False,
                    ncol=args.legend_columns, bbox_to_anchor=args.legend_position_coords)
 
