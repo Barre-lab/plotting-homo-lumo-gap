@@ -37,7 +37,7 @@ class calculation_sequence:
     """
 
     def __init__(self, foldername: str, accepted_outputfiles: List[str], ascending_energies=False,
-                 separate_states=False):
+                 separate_states=False, select_points=None):
 
         if not foldername.endswith("/"):
             foldername += "/"
@@ -98,7 +98,7 @@ class calculation_sequence:
                 self.states[state_index].append(index)
 
         # Ordering the (frames), gaps and energies in ascending frame or ascending energy order
-        if ascending_energies:
+        if ascending_energies or select_points:
             order = np.argsort(self.energies, kind="heapsort")
             self.frames = np.linspace(0, 1, num=len(self.energies))
         else:
@@ -107,6 +107,12 @@ class calculation_sequence:
 
         self.gaps = self.gaps[order]
         self.energies = self.energies[order]
+
+        # Keeping only the number of selected points with the lowest energies
+        if select_points:
+            self.frames = self.frames[:select_points]
+            self.gaps = self.gaps[:select_points]
+            self.energies = self.energies[:select_points]
 
         if separate_states:
             # Updating the indices corresponding to each state using the sorted order

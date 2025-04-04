@@ -22,7 +22,7 @@ def parse_arguments():
             help="Labels of folders with calculations or sequences of folders with calculations")
 
     parser.add_argument(
-            "-p", "--points",
+            "-p", "--select_points",
             type=int,
             help="Take only the p points with the lowest total energy for each sequence")
 

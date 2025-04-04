@@ -46,7 +46,7 @@ def plot_all_together(args: argparse.Namespace, input_type: str, accepted_files:
     for index, calc_sequence in enumerate(sequences):
 
         sequence = calculation_sequence(calc_sequence, accepted_files, args.ascending_energies,
-                                        args.separate_states)
+                                        args.separate_states, args.select_points)
 
         color = settings.colors[index]
 
@@ -171,7 +171,7 @@ def plot_all_separate(args: argparse.Namespace, input_type: str, accepted_files:
 
         # Initializing sequence class (which gets all data)
         sequence = calculation_sequence(sequence, accepted_files, args.ascending_energies,
-                                        args.separate_states)
+                                        args.separate_states, args.select_points)
 
         # Finding index of axs to plot in
         ax_index = all_water.index(sequence.nwater)
@@ -411,7 +411,8 @@ def plot_averages(args: argparse.Namespace, input_type: str, accepted_file: List
 
         # Looping over each sequence in collection
         for sub_index, calc_sequence in enumerate(sequences):
-            sequence = calculation_sequence(calc_sequence, accepted_file)
+            sequence = calculation_sequence(calc_sequence, accepted_file,
+                                            select_points=args.select_points)
             waters[sub_index] = sequence.nwater
             avg_gaps[sub_index] = np.average(sequence.gaps)
             std_gaps[sub_index] = np.std(sequence.gaps)
