@@ -28,7 +28,7 @@ def plot_all_together(args: argparse.Namespace, input_type: str, accepted_files:
             raise ValueError("Cannot plot multiple collections together in one graph")
 
         sequences = [args.input[0] + direc for direc in os.listdir(args.input[0]) if
-                     direc.startswith("calculations")]
+                     direc.startswith(("calculations", "configurations"))]
     elif input_type == "sequence":
         sequences = args.input
         if len(sequences) > 1 and args.include_energies:
@@ -45,7 +45,8 @@ def plot_all_together(args: argparse.Namespace, input_type: str, accepted_files:
     # Looping over all the sequence with calculations to plot them
     for index, calc_sequence in enumerate(sequences):
 
-        sequence = calculation_sequence(calc_sequence, accepted_files, args.ascending_energies)
+        sequence = calculation_sequence(calc_sequence, accepted_files, args.ascending_energies,
+                                        args.separate_states)
 
         color = settings.colors[index]
 
@@ -169,7 +170,8 @@ def plot_all_separate(args: argparse.Namespace, input_type: str, accepted_files:
         """
 
         # Initializing sequence class (which gets all data)
-        sequence = calculation_sequence(sequence, accepted_files, args.ascending_energies)
+        sequence = calculation_sequence(sequence, accepted_files, args.ascending_energies,
+                                        args.separate_states)
 
         # Finding index of axs to plot in
         ax_index = all_water.index(sequence.nwater)
@@ -229,7 +231,8 @@ def plot_all_separate(args: argparse.Namespace, input_type: str, accepted_files:
         all_water = []
         for collection in args.input:
             water_collection = [re.search(r"\_(.*?)\_", folder).group(1) for folder in
-                                os.listdir(collection) if folder.startswith("calculations")]
+                                os.listdir(collection) if
+                                folder.startswith(("calculations", "configurations"))]
             for nwater in water_collection:
                 if int(nwater) not in all_water:
                     all_water.append(int(nwater))
@@ -256,8 +259,8 @@ def plot_all_separate(args: argparse.Namespace, input_type: str, accepted_files:
             color = settings.colors[index]
 
             # Getting list of all calculation sequences
-            sequences = [os.path.join(collection, folder) for folder
-                         in os.listdir(collection) if folder.startswith("calculations")]
+            sequences = [os.path.join(collection, folder) for folder in os.listdir(collection)
+                         if folder.startswith(("calculations", "configurations"))]
 
             # Plotting the data of each sequence in the correct subplot
             for sequence in sequences:
@@ -398,7 +401,7 @@ def plot_averages(args: argparse.Namespace, input_type: str, accepted_file: List
 
         # Finding each sequence in collection
         sequences = [os.path.join(collection, direc) for direc in os.listdir(collection) if
-                     direc.startswith("calculations")]
+                     direc.startswith(("calculations", "configurations"))]
 
         # Initializing data arrays
         nsequences = len(sequences)

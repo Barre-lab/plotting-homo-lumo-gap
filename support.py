@@ -12,10 +12,15 @@ def find_paths(directory, filenames, str_fragment=".xyz"):
     """
     Finds the paths to the out file of a single-point calculation (any file in 'filenames')
     and the fragment file within in the input directory.
+
+    Additionally, the function will try to find an engine specific rkf file. If it can not
+    find a fragment file, it will instead return this rkf file from which the molecule
+    geometry can be extracted.
     """
 
     path_to_output = []
     path_to_fragment = []
+    path_to_rkf = []
 
     for dir_path, _, file_names in os.walk(directory):
         for file in file_names:
@@ -23,11 +28,16 @@ def find_paths(directory, filenames, str_fragment=".xyz"):
                 path_to_output.append(os.path.join(dir_path, file))
             if file.endswith(str_fragment) and not file.startswith("output"):
                 path_to_fragment.append(dir_path)
+            if file in ["dftb.rkf", "adf.rkf"]:
+                path_to_rkf.append(os.path.join(dir_path, file))
 
     if not path_to_output:
         raise ValueError(f"No path to outputfile found in: {directory}")
     if not path_to_fragment:
-        raise ValueError(f"No path to fragment found in: {directory}")
+        if path_to_rkf:
+            path_to_fragment.append(path_to_rkf[0])
+        else:
+            raise ValueError(f"No path to fragment file or rkf file in: {directory}")
 
     if len(path_to_output) > 1:
         for output_file in path_to_output.copy():
@@ -46,24 +56,31 @@ def find_paths(directory, filenames, str_fragment=".xyz"):
 def get_connections(fragment_path):
     """
     Finds connection table of scm.plams.Molecule (excluding water) in fragment path.
+    The fragment path can either point to an rkf or an xyz file.
 
     Connection table: list with list of neighbors for each fragment atom.
     """
 
     fragment_file = None
 
-    for file in os.listdir(fragment_path):
-        if file.endswith(".xyz"):
-            fragment_file = os.path.join(fragment_path, file)
+    # Finding the rkf or xyz file
+    if os.path.isfile(fragment_path) and fragment_path.endswith(".rkf"):
+        job = scm.plams.AMSJob.load_external(fragment_path)
+        molecule = job.results.get_main_molecule()
+    else:
+        for file in os.listdir(fragment_path):
+            if file.endswith(".xyz"):
+                fragment_file = os.path.join(fragment_path, file)
+                molecule = scm.plams.Molecule(fragment_file)
 
-    if not fragment_file:
+    if not molecule:
         raise FileNotFoundError(f"Could not find fragment file in: {fragment_path}")
 
-    molecule = scm.plams.Molecule(fragment_file)
+    # Removing any water molecules from the fragment
     molecule.guess_bonds()
-
     components = molecule.separate()
     fragment = scm.plams.Molecule()
+
     for component in components:
         if component.get_formula() != "H2O":
             fragment += component
@@ -105,12 +122,15 @@ def get_frame_number(fragment_path):
 
     frame = None
 
+    if os.path.isfile(fragment_path) and fragment_path.endswith(".rkf"):
+        raise NameError(f"Cannot get frame number from .rkf: {fragment_path}")
+
     for file in os.listdir(fragment_path):
         if file.endswith(".xyz"):
             frame = re.sub(r'[^\d]+', '', file)
 
     if not frame:
-        raise NameError(f" Could not find frame from fragment: {fragment_path}")
+        raise NameError(f"Could not find frame from fragment: {fragment_path}")
 
     return frame
 
@@ -144,7 +164,7 @@ def find_input_type(args_input: list):
     for index, folder in enumerate(args_input):
         basename = os.path.basename(os.path.normpath(folder))
 
-        if basename.startswith("calculations"):
+        if basename.startswith(("calculations", "configurations")):
             check_folders[index] = True
         else:
             check_folders[index] = False

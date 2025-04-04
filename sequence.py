@@ -36,14 +36,18 @@ class calculation_sequence:
     * std_energies -- list of standard deviations in total energies (for each state)
     """
 
-    def __init__(self, foldername: str, accepted_outputfiles: List[str], ascending_energies=False):
+    def __init__(self, foldername: str, accepted_outputfiles: List[str], ascending_energies=False,
+                 separate_states=False):
 
         if not foldername.endswith("/"):
             foldername += "/"
 
         # Finding the number of water molecules
         basename = os.path.basename(os.path.normpath(foldername))
-        self.nwater = int(re.search(r"\_(.*?)\_", basename).group(1))
+        try:
+            self.nwater = int(re.search(r"\_(.*?)\_", basename).group(1))
+        except AttributeError:
+            self.nwater = int(re.search(r"\-(.*?)\-", basename).group(1))
 
         # Getting list of directories with calculations (ascending integer order)
         calculations = np.array([direc for direc in os.listdir(foldername) if
@@ -71,23 +75,27 @@ class calculation_sequence:
             if index == 0:
                 output_file, fragment_path = find_paths(foldername + calculation, accepted_outputfiles)
 
-            # Finding the connection table of the fragment
-            connection_table = get_connections(foldername + calculation + fragment_path)
-            if connection_table not in self.connections:
-                self.connections.append(connection_table)
-                self.states.append([])
-
-            # classifying the fragment state based on connection table
-            state_index = self.connections.index(connection_table)
-            self.states[state_index].append(index)
-
             # Getting the homo-lumo gap and energy
             gap, energy = get_data(foldername + calculation + output_file)
             self.gaps[index] = gap
             self.energies[index] = energy
 
             # Getting the frame number
-            self.frames[index] = get_frame_number(foldername + calculation + fragment_path)
+            try:
+                self.frames[index] = get_frame_number(foldername + calculation + fragment_path)
+            except NameError:
+                self.frames[index] = int(calculation)
+
+            if separate_states:
+                # Finding the connection table of the fragment
+                connection_table = get_connections(foldername + calculation + fragment_path)
+                if connection_table not in self.connections:
+                    self.connections.append(connection_table)
+                    self.states.append([])
+
+                # classifying the fragment state based on connection table
+                state_index = self.connections.index(connection_table)
+                self.states[state_index].append(index)
 
         # Ordering the (frames), gaps and energies in ascending frame or ascending energy order
         if ascending_energies:
@@ -100,20 +108,21 @@ class calculation_sequence:
         self.gaps = self.gaps[order]
         self.energies = self.energies[order]
 
-        # Updating the indices corresponding to each state using the sorted order
-        for index, state in enumerate(self.states):
-            ordered_state = np.argsort(order, kind="heapsort")[state]
-            self.states[index] = ordered_state
+        if separate_states:
+            # Updating the indices corresponding to each state using the sorted order
+            for index, state in enumerate(self.states):
+                ordered_state = np.argsort(order, kind="heapsort")[state]
+                self.states[index] = ordered_state
 
-        # Calculating the averages and standard deviations for the gaps and energies in each state
-        nstates = len(self.states)
-        self.avg_gaps = np.zeros(nstates)
-        self.avg_energies = np.zeros(nstates)
-        self.std_gaps = np.zeros(nstates)
-        self.std_energies = np.zeros(nstates)
+            # Calculating the averages and standard deviations for the gaps and energies in each state
+            nstates = len(self.states)
+            self.avg_gaps = np.zeros(nstates)
+            self.avg_energies = np.zeros(nstates)
+            self.std_gaps = np.zeros(nstates)
+            self.std_energies = np.zeros(nstates)
 
-        for index, state in enumerate(self.states):
-            self.avg_gaps[index] = np.average(self.gaps[state])
-            self.avg_energies[index] = np.average(self.energies[state])
-            self.std_gaps[index] = np.std(self.gaps[state])
-            self.std_energies[index] = np.std(self.energies[state])
+            for index, state in enumerate(self.states):
+                self.avg_gaps[index] = np.average(self.gaps[state])
+                self.avg_energies[index] = np.average(self.energies[state])
+                self.std_gaps[index] = np.std(self.gaps[state])
+                self.std_energies[index] = np.std(self.energies[state])
