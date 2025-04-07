@@ -338,8 +338,8 @@ def plot_all_separate(args: argparse.Namespace, input_type: str, accepted_files:
             min_yrange = min(ax.get_ylim()[0], min_yrange)
             max_yrange = max(ax.get_ylim()[1], max_yrange)
         else:
-            ax.set_visible(False)
-            ax2.set_visible(False)
+            ax.remove()
+            ax2.remove()
 
         if args.include_energies:
             ax2.set_ylabel("Total energy [eV]", fontsize=fs)
@@ -498,5 +498,20 @@ def plot_averages(args: argparse.Namespace, input_type: str, accepted_file: List
     # Saving plot
     if args.plot_name:
         plt.savefig(args.plot_name)
+
+    # Saving data
+    if args.save_data:
+        with open(args.save_data, "x") as f:
+            f.write("# N-water   avg gap [eV]   std gap [eV]   avg energy [eV]   std energy [eV]")
+            f.write("\n")
+            spacings = [12, 15, 15, 18, 18]
+            data = zip(waters, avg_gaps, std_gaps, avg_energies, std_energies)
+            for water, avg_gap, std_gap, avg_energy, std_energy in data:
+                variables = [water, avg_gap, std_gap, avg_energy, std_energy]
+                row = ""
+                for variable, space in zip(variables, spacings):
+                    row += f"{round(variable, 8)}".ljust(space)
+                f.write(row)
+                f.write("\n")
 
     plt.show()

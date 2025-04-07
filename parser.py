@@ -97,4 +97,9 @@ def parse_arguments():
             type=str,
             help="Save plot as plot name")
 
+    parser.add_argument(
+            "-sd", "--save-data",
+            type=str,
+            help="Save data as provided name (only for -avg and 1 collection)")
+
     return parser.parse_args()
