@@ -32,6 +32,11 @@ def parse_arguments():
             help="Plot average data as function of N H2O instead of all data against frames")
 
     parser.add_argument(
+            "-dist", "--distribution",
+            action="store_true",
+            help="Plot the distributions of homo-lumo gaps for the given input")
+
+    parser.add_argument(
             "-m", "--multi-plot",
             action="store_true",
             help="Enforce plottting data in multiple subgraphs instead of the default type")

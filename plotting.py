@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib import ticker
 import numpy as np
+from scipy.stats import gaussian_kde
 
 # Local libraries
 from sequence import calculation_sequence
@@ -513,5 +514,102 @@ def plot_averages(args: argparse.Namespace, input_type: str, accepted_file: List
                     row += f"{round(variable, 8)}".ljust(space)
                 f.write(row)
                 f.write("\n")
+
+    plt.show()
+
+
+def plot_distribution(args: argparse.Namespace, input_type: str, accepted_files: List[str],
+                      settings: classmethod) -> None:
+    """
+    Plots histogram and density distribution of the homo-lumo gaps for the given input
+    """
+
+    bin_width = 0.005
+
+    # Collecting input data in appropriate list
+    if input_type == "collection":
+        if len(args.input) > 1:
+            raise ValueError("Cannot plot multiple collections together in one graph")
+
+        sequences = [args.input[0] + direc for direc in os.listdir(args.input[0]) if
+                     direc.startswith(("calculations", "configurations"))]
+    elif input_type == "sequence":
+        sequences = args.input
+    else:
+        raise ValueError(f"Unknown input type: {input_type}")
+
+    # Initializing figure
+    fig, ax = plt.subplots(figsize=settings.figsize)
+
+    # Initializing legend
+    handles = []
+
+    # Looping over all sequences
+    for index, calc_sequence in enumerate(sequences):
+
+        color = settings.colors[index]
+
+        # Getting label and adding it to legend
+        basename = os.path.basename(os.path.normpath(calc_sequence))
+        try:
+            swater = re.findall(r"_(.*?)_H2O|-(.*?)-H2O", basename)
+            nwater = [i for i in swater[0] if i][0]
+            label = f"{nwater[0]} H2O"
+        except Exception:
+            label = basename
+
+        handles.append(Line2D([0], [0], marker="s", label=label, color=color, ms=5, ls=""))
+
+        # Obtaining data by initializing sequence class
+        sequence = calculation_sequence(calc_sequence, accepted_files, args.ascending_energies,
+                                        args.separate_states, args.select_points)
+
+        # Computing Gaussian kernel density
+        density = gaussian_kde(sequence.gaps)
+        xs = np.linspace(min(sequence.gaps), max(sequence.gaps), 200)
+        density.covariance_factor = lambda: .05
+        density._compute_covariance()
+
+        # Computing histogram
+        bins = np.arange(np.min(sequence.gaps), np.max(sequence.gaps) + bin_width, bin_width)
+        counts, _ = np.histogram(sequence.gaps, bins=bins, density=True)
+        bin_centers = bins[:-1] + bin_width / 2
+
+        # Defining scalar to invert data
+        if index == 1:
+            scalar = -1
+        else:
+            scalar = 1
+
+        # Plotting histogram
+        ax.bar(bin_centers, scalar*counts, width=bin_width, align="center", alpha=0.3, color=color)
+
+        # Plotting computed density curve
+        ax.plot(xs, scalar*density(xs), color=color)
+
+        # Plotting horizontal line at y=0
+        if index == 1:
+            ax.axhline(0, color="k", lw=0.75)
+
+    # Naming axes
+    fs = settings.axes_size
+    ts = settings.tick_size
+
+    ax.set_xlabel("Homo-lumo gap [eV]", fontsize=fs)
+    ax.set_ylabel("", fontsize=fs)
+
+    # Specifying axis ticks
+    ax.tick_params(axis="both", which="major", labelsize=ts)
+
+    # Including legend
+    if (not args.legend_none and len(args.input)) > 1 or args.include_energies:
+        plt.legend(handles=handles, fontsize=fs, loc=args.legend_position, frameon=False,
+                   ncol=args.legend_columns, bbox_to_anchor=args.legend_position_coords)
+
+    fig.tight_layout()
+
+    # Saving plot
+    if args.plot_name:
+        plt.savefig(args.plot_name)
 
     plt.show()
