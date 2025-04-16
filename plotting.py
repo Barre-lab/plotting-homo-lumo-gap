@@ -638,3 +638,189 @@ def plot_distribution(args: argparse.Namespace, input_type: str, accepted_files:
         plt.savefig(args.plot_name)
 
     plt.show()
+
+
+def plot_multiple_distributions(args: argparse.Namespace, input_type: str, accepted_files: List[str],
+                                settings: classmethod) -> None:
+    """
+    Plots histogram and density distribution of the homo-lumo gaps for the given input.
+    This function can take two collections as input and makes subplots for each water content
+    When two collections are given, the histogram of the second is mirrored for each subplot
+
+    When the energy is also requested, only one collection can be given and the histogram
+    of the energy is mirrored with an additional x-axis being added.
+
+    The average gaps and energies can also be plotted as vertical lines.
+    """
+
+    bin_width = 0.005
+    ks = 0.05
+
+    # Checking the input of the function
+    if input_type != "collection":
+        raise ValueError(f"Wrong input type: {input_type}")
+    if len(args.input) > 2:
+        raise ValueError("Cannot plot more than 2 collections")
+    if args.include_energies and len(args.input) != 1:
+        raise ValueError("Can only plot one collection when including energies")
+
+    # Getting a list with all the number of water molecules in the collections
+    all_water = []
+    for collection in args.input:
+        sequences = [direc for direc in os.listdir(collection) if
+                     direc.startswith(("calculations", "configurations"))]
+        for sequence in sequences:
+            swater = re.findall(r"_(.*?)_H2O|-(.*?)-H2O", sequence)
+            all_water.append(int([i for i in swater[0] if i][0]))
+
+    all_water = list(dict.fromkeys(all_water))
+
+    # Sorting list with all waters in ascending order
+    all_water.sort()
+
+    # Initializing figure with sub-figures (one sub-figure for each water amount)
+    if args.vertical:
+        ncols = -(-len(all_water) // 2)
+        fig, axs = plt.subplots(nrows=2, ncols=ncols, figsize=(3*ncols, 4))
+    else:
+        nrows = -(-len(all_water) // 2)
+        fig, axs = plt.subplots(nrows=nrows, ncols=2, figsize=(6, 2*nrows))
+
+    axs2 = np.empty(axs.shape, dtype=object)
+    handles = []
+
+    # Looping over the collections
+    for index, collection in enumerate(args.input):
+
+        color = settings.colors[index]
+
+        sequences = [os.path.join(collection, folder) for folder in os.listdir(collection)
+                     if folder.startswith(("calculations", "configurations"))]
+
+        # Adding label to legend
+        if args.labels:
+            label = args.labels[index]
+        else:
+            basename = os.path.basename(os.path.normpath(collection))
+            label = basename.replace("-", " ").replace("_", " ")
+        handles.append(Line2D([0], [0], marker="s", label=label, c=color, ls="", ms=5))
+
+        for calc_sequence in sequences:
+            # Initializing sequence class (which gets all data)
+            sequence = calculation_sequence(calc_sequence, accepted_files, args.ascending_energies,
+                                            args.separate_states, args.select_points)
+
+            # Finding index of axs to plot in
+            ax_index = all_water.index(sequence.nwater)
+            ncols = -(-len(all_water) // 2)
+            if axs.ndim > 1:
+                if args.vertical:
+                    ax_index = (ax_index // ncols, ax_index % ncols)
+                else:
+                    ax_index = (ax_index // 2, ax_index % 2)
+
+            # Computing data for homo-lumo gap histogram
+            counts, bin_centers, xs, density = compute_histogram(sequence.gaps, bin_width, ks)
+
+            # Defining scalar to invert data
+            if index == 1:
+                scalar = -1
+            else:
+                scalar = 1
+
+            # Plotting homo-lumo gap histogram and computed density curve
+            axs[ax_index].bar(bin_centers, scalar*counts, width=bin_width,
+                              align="center", alpha=0.3, color=color)
+            axs[ax_index].plot(xs, scalar*density(xs), color=color)
+            if args.average:
+                if index == 0:
+                    axs[ax_index].vlines(x=np.average(sequence.gaps), ymin=0, ymax=max(counts),
+                                         color=color, lw=2, ls="dashed")
+                else:
+                    axs[ax_index].vlines(x=np.average(sequence.gaps), ymin=min(-counts), ymax=0,
+                                         color=color, lw=2, ls="dashed")
+
+            # Plotting energy histogram and computed density curve
+            if args.include_energies:
+                counts, bin_centers, xs, density = compute_histogram(sequence.energies, bin_width, ks)
+                axs2[ax_index] = axs[ax_index].twiny()
+                axs2[ax_index].bar(bin_centers, -counts, width=bin_width, align="center",
+                                   alpha=0.3, color=settings.colors[1])
+                axs2[ax_index].plot(xs, -density(xs), color=settings.colors[1])
+                axs2[ax_index].axhline(0, color="k", lw=0.75)
+                if args.average:
+                    axs2[ax_index].vlines(x=np.average(sequence.energies), color=settings.colors[1],
+                                          lw=2, ls="dashed", ymin=min(-counts), ymax=0)
+
+    # Defining sub-plot names, axis names and ticks and getting y-ranges
+    fs = settings.axes_size
+    ts = settings.tick_size
+    min_xrange, max_xrange = np.inf, 0
+    for ax, ax2, nwater in zip(axs.flat, axs2.flat, all_water):
+
+        ax.set_xlabel("Homo-lumo gap [eV]", fontsize=fs)
+        ax.set_ylabel("", fontsize=fs)
+        ax.label_outer()
+
+        ax.xaxis.set_tick_params(labelbottom=True, labelsize=ts)
+
+        if ax.lines:
+            if args.include_energies:
+                ax.set_title(f"{nwater} H2O", fontsize=10, loc="left")
+            else:
+                ax.set_title(f"{nwater} H2O", fontsize=10)
+
+            min_xrange = min(ax.get_xlim()[0], min_xrange)
+            max_xrange = max(ax.get_xlim()[1], max_xrange)
+        else:
+            ax.remove()
+            ax2.remove()
+
+        if args.include_energies:
+            ax2.set_xlabel("Relative energy [eV]", fontsize=fs)
+            x0, x1 = ax2.get_xlim()
+            visible_ticks = [t for t in ax2.get_xticks() if x0 < t < x1]
+            offset = min(visible_ticks)
+            ax2.ticklabel_format(axis="x", style="plain", useOffset=offset, useMathText=True)
+            ax2.xaxis.get_offset_text().set(fontsize=0, color="white")
+
+            # Swapping x-axis, putting energy at bottom and gap on top
+            ax.xaxis.tick_top()
+            ax.xaxis.set_label_position("top")
+            ax2.xaxis.tick_bottom()
+            ax2.xaxis.set_label_position("bottom")
+
+            if np.where(axs2 == ax2)[0] == 0:
+                ax.set_xlabel("Homo-lumo gap [eV]", fontsize=fs)
+
+            ax.label_outer()
+            ax2.label_outer()
+            ax2.xaxis.set_tick_params(labelbottom=True, labelsize=ts)
+
+        else:
+            ax.xaxis.set_tick_params(labelbottom=True, labelsize=ts)
+
+    # Setting equal y-range for all subplots
+    for ax in axs.flat:
+        ax.set_xlim(min_xrange, max_xrange)
+
+    # Defining spacing between subplots
+    plt.tight_layout()
+    fig.subplots_adjust(hspace=0.4)
+    fig.subplots_adjust(wspace=0.2)
+
+    # Adding legend
+    if axs.ndim > 1:
+        ax_index = (args.legend_index // 2, args.legend_index % 2)
+    else:
+        ax_index = args.legend_index
+
+    if len(args.input) > 1 and not args.legend_none:
+        axs[ax_index].legend(handles=handles, fontsize=fs, loc=args.legend_position,
+                             frameon=False, ncol=args.legend_columns,
+                             bbox_to_anchor=args.legend_position_coords)
+
+    if args.plot_name:
+        plt.savefig(args.plot_name)
+
+    plt.show()

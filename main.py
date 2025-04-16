@@ -7,6 +7,7 @@ from plotting import plot_all_together
 from plotting import plot_all_separate
 from plotting import plot_averages
 from plotting import plot_distribution
+from plotting import plot_multiple_distributions
 from settings import Settings
 
 
@@ -33,8 +34,10 @@ def main(args):
         raise ValueError("Combination of moving average and including energies is not supported")
 
     # Plotting
-    if args.distribution:
+    if args.distribution and input_type == "sequence":
         plot_distribution(args, input_type, accepted_files, plot_settings)
+    elif args.distribution and input_type == "collection":
+        plot_multiple_distributions(args, input_type, accepted_files, plot_settings)
     elif input_type == "sequence" and not args.multi_plot:
         plot_all_together(args, input_type, accepted_files, plot_settings)
     elif input_type == "collection" and args.average:
