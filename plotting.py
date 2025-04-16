@@ -14,6 +14,7 @@ from scipy.stats import gaussian_kde
 # Local libraries
 from sequence import calculation_sequence
 from support import get_moving_average
+from support import compute_histogram
 
 
 def plot_all_together(args: argparse.Namespace, input_type: str, accepted_files: List[str],
@@ -521,22 +522,26 @@ def plot_averages(args: argparse.Namespace, input_type: str, accepted_file: List
 def plot_distribution(args: argparse.Namespace, input_type: str, accepted_files: List[str],
                       settings: classmethod) -> None:
     """
-    Plots histogram and density distribution of the homo-lumo gaps for the given input
+    Plots histogram and density distribution of the homo-lumo gaps for the given input.
+    This function can take two sequences as input. When two are given, the histogram of
+    one of them is mirrored for a better comparison.
+
+    When the energy is also requested, only one sequence can be given and the histogram
+    of the energy is mirrored with an additional x-axis being added.
+
+    The average gaps and energies can also be plotted as vertical lines.
     """
 
     bin_width = 0.005
+    ks = 0.05
 
-    # Collecting input data in appropriate list
-    if input_type == "collection":
-        if len(args.input) > 1:
-            raise ValueError("Cannot plot multiple collections together in one graph")
-
-        sequences = [args.input[0] + direc for direc in os.listdir(args.input[0]) if
-                     direc.startswith(("calculations", "configurations"))]
-    elif input_type == "sequence":
-        sequences = args.input
-    else:
-        raise ValueError(f"Unknown input type: {input_type}")
+    # Checking the input of the function
+    if input_type != "sequence":
+        raise ValueError(f"Wrong input type: {input_type}")
+    if len(args.input) > 2:
+        raise ValueError("Cannot plot more than 2 sequences")
+    if args.include_energies and len(args.input) != 1:
+        raise ValueError("Can only plot one sequence when including energies")
 
     # Initializing figure
     fig, ax = plt.subplots(figsize=settings.figsize)
@@ -545,7 +550,7 @@ def plot_distribution(args: argparse.Namespace, input_type: str, accepted_files:
     handles = []
 
     # Looping over all sequences
-    for index, calc_sequence in enumerate(sequences):
+    for index, calc_sequence in enumerate(args.input):
 
         color = settings.colors[index]
 
@@ -557,23 +562,14 @@ def plot_distribution(args: argparse.Namespace, input_type: str, accepted_files:
             label = f"{nwater[0]} H2O"
         except Exception:
             label = basename
-
         handles.append(Line2D([0], [0], marker="s", label=label, color=color, ms=5, ls=""))
 
         # Obtaining data by initializing sequence class
         sequence = calculation_sequence(calc_sequence, accepted_files, args.ascending_energies,
                                         args.separate_states, args.select_points)
 
-        # Computing Gaussian kernel density
-        density = gaussian_kde(sequence.gaps)
-        xs = np.linspace(min(sequence.gaps), max(sequence.gaps), 200)
-        density.covariance_factor = lambda: .05
-        density._compute_covariance()
-
-        # Computing histogram
-        bins = np.arange(np.min(sequence.gaps), np.max(sequence.gaps) + bin_width, bin_width)
-        counts, _ = np.histogram(sequence.gaps, bins=bins, density=True)
-        bin_centers = bins[:-1] + bin_width / 2
+        # Computing data for homo-lumo gap histogram
+        counts, bin_centers, xs, density = compute_histogram(sequence.gaps, bin_width, ks)
 
         # Defining scalar to invert data
         if index == 1:
@@ -581,30 +577,59 @@ def plot_distribution(args: argparse.Namespace, input_type: str, accepted_files:
         else:
             scalar = 1
 
-        # Plotting histogram
+        # Plotting homo-lumo gap histogram and computed density curve
         ax.bar(bin_centers, scalar*counts, width=bin_width, align="center", alpha=0.3, color=color)
-
-        # Plotting computed density curve
         ax.plot(xs, scalar*density(xs), color=color)
+        if args.average:
+            if index == 0:
+                ax.vlines(x=np.average(sequence.gaps), ymin=0, ymax=max(counts),
+                          color=color, lw=2, ls="dashed")
+            else:
+                ax.vlines(x=np.average(sequence.gaps), ymin=min(-counts), ymax=0,
+                          color=color, lw=2, ls="dashed")
 
         # Plotting horizontal line at y=0
         if index == 1:
             ax.axhline(0, color="k", lw=0.75)
 
-    # Naming axes
-    fs = settings.axes_size
-    ts = settings.tick_size
+        # Plotting energy histogram and computed density curve
+        if args.include_energies:
+            counts, bin_centers, xs, density = compute_histogram(sequence.energies, bin_width, ks)
+            ax2 = ax.twiny()
+            ax2.bar(bin_centers, -counts, width=bin_width, align="center",
+                    alpha=0.3, color=settings.colors[1])
+            ax2.plot(xs, -density(xs), color=settings.colors[1])
+            ax.axhline(0, color="k", lw=0.75)
+            if args.average:
+                ax2.vlines(x=np.average(sequence.energies), color=settings.colors[1],
+                           lw=2, ls="dashed", ymin=min(-counts), ymax=0)
 
-    ax.set_xlabel("Homo-lumo gap [eV]", fontsize=fs)
-    ax.set_ylabel("", fontsize=fs)
+    # Naming axes and specifying ticks
+    ax.set_xlabel("Homo-lumo gap [eV]", fontsize=settings.axes_size)
+    ax.set_ylabel("", fontsize=settings.axes_size)
+    ax.tick_params(axis="both", which="major", labelsize=settings.tick_size)
+
+    if args.include_energies:
+        ax2.set_xlabel("Relative energy [eV]", fontsize=settings.axes_size)
+        ax2.tick_params(axis="both", which="major", labelsize=settings.tick_size)
+        offset = ax2.get_xticks()[1]
+        ax2.ticklabel_format(axis="x", style="plain", useOffset=offset, useMathText=True)
+        ax2.xaxis.get_offset_text().set(fontsize=0, color="white")
+
+        # Swapping x-axis, putting energy at bottom and gap on top
+        ax.xaxis.tick_top()
+        ax.xaxis.set_label_position("top")
+        ax2.xaxis.tick_bottom()
+        ax2.xaxis.set_label_position("bottom")
 
     # Specifying axis ticks
-    ax.tick_params(axis="both", which="major", labelsize=ts)
+    ax.tick_params(axis="both", which="major", labelsize=settings.tick_size)
 
     # Including legend
-    if (not args.legend_none and len(args.input)) > 1 or args.include_energies:
-        plt.legend(handles=handles, fontsize=fs, loc=args.legend_position, frameon=False,
-                   ncol=args.legend_columns, bbox_to_anchor=args.legend_position_coords)
+    if not args.legend_none and len(args.input) > 1:
+        plt.legend(handles=handles, fontsize=settings.axes_size, loc=args.legend_position,
+                   frameon=False, ncol=args.legend_columns,
+                   bbox_to_anchor=args.legend_position_coords)
 
     fig.tight_layout()
 

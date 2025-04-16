@@ -6,6 +6,7 @@ import time
 # Third-party libraries
 import scm.plams
 import numpy as np
+from scipy.stats import gaussian_kde
 
 
 def find_paths(directory, filenames, str_fragment=".xyz"):
@@ -178,3 +179,25 @@ def find_input_type(args_input: list):
         input_type = "collection"
 
     return input_type
+
+
+def compute_histogram(data, bin_width=0.005, kernelsize=0.05):
+    """
+    Computes and returns histogram counts and bin_centers for histogram plotting
+    using bar plot.
+    Also computes and returns an array of x-data with a corresponding Gaussian
+    kernel density.
+    """
+
+    # Computing Gaussian kernel density
+    density = gaussian_kde(data)
+    xs = np.linspace(min(data), max(data), 500)
+    density.covariance_factor = lambda: kernelsize
+    density._compute_covariance()
+
+    # Computing histogram
+    bins = np.arange(np.min(data), np.max(data) + bin_width, bin_width)
+    counts, _ = np.histogram(data, bins=bins, density=True)
+    bin_centers = bins[:-1] + bin_width / 2
+
+    return counts, bin_centers, xs, density
