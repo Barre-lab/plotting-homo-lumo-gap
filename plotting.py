@@ -580,13 +580,16 @@ def plot_distribution(args: argparse.Namespace, input_type: str, accepted_files:
         # Plotting homo-lumo gap histogram and computed density curve
         ax.bar(bin_centers, scalar*counts, width=bin_width, align="center", alpha=0.3, color=color)
         ax.plot(xs, scalar*density(xs), color=color)
+
+        # Plotting average homo-lumo gaps as vertical lines
         if args.average:
+            y_min, y_max = ax.get_ylim()
+            avg = np.average(sequence.gaps)
             if index == 0:
-                ax.vlines(x=np.average(sequence.gaps), ymin=0, ymax=max(counts),
-                          color=color, lw=2, ls="dashed")
+                line = Line2D([avg, avg], [0, y_max*2], color=color, lw=2, ls="dotted")
             else:
-                ax.vlines(x=np.average(sequence.gaps), ymin=min(-counts), ymax=0,
-                          color=color, lw=2, ls="dashed")
+                line = Line2D([avg, avg], [y_min, 0], color=color, lw=2, ls="dotted")
+            ax.add_artist(line)
 
         # Plotting horizontal line at y=0
         if index == 1:
@@ -600,9 +603,12 @@ def plot_distribution(args: argparse.Namespace, input_type: str, accepted_files:
                     alpha=0.3, color=settings.colors[1])
             ax2.plot(xs, -density(xs), color=settings.colors[1])
             ax.axhline(0, color="k", lw=0.75)
+
             if args.average:
-                ax2.vlines(x=np.average(sequence.energies), color=settings.colors[1],
-                           lw=2, ls="dashed", ymin=min(-counts), ymax=0)
+                y_min, _ = ax2.get_ylim()
+                avg = np.average(sequence.energies)
+                line = Line2D([avg, avg], [y_min, 0], color=settings.colors[1], lw=2, ls="dotted")
+                ax2.add_artist(line)
 
     # Naming axes and specifying ticks
     ax.set_xlabel("Homo-lumo gap [eV]", fontsize=settings.axes_size)
@@ -733,12 +739,13 @@ def plot_multiple_distributions(args: argparse.Namespace, input_type: str, accep
                               align="center", alpha=0.3, color=color)
             axs[ax_index].plot(xs, scalar*density(xs), color=color)
             if args.average:
+                y_min, y_max = axs[ax_index].get_ylim()
+                avg = np.average(sequence.gaps)
                 if index == 0:
-                    axs[ax_index].vlines(x=np.average(sequence.gaps), ymin=0, ymax=max(counts),
-                                         color=color, lw=2, ls="dashed")
+                    line = Line2D([avg, avg], [0, y_max*2], color=color, lw=2, ls="dotted")
                 else:
-                    axs[ax_index].vlines(x=np.average(sequence.gaps), ymin=min(-counts), ymax=0,
-                                         color=color, lw=2, ls="dashed")
+                    line = Line2D([avg, avg], [y_min, 0], color=color, lw=2, ls="dotted")
+                axs[ax_index].add_artist(line)
 
             # Plotting energy histogram and computed density curve
             if args.include_energies:
@@ -748,9 +755,12 @@ def plot_multiple_distributions(args: argparse.Namespace, input_type: str, accep
                                    alpha=0.3, color=settings.colors[1])
                 axs2[ax_index].plot(xs, -density(xs), color=settings.colors[1])
                 axs2[ax_index].axhline(0, color="k", lw=0.75)
+
                 if args.average:
-                    axs2[ax_index].vlines(x=np.average(sequence.energies), color=settings.colors[1],
-                                          lw=2, ls="dashed", ymin=min(-counts), ymax=0)
+                    y_min, _ = axs2[ax_index].get_ylim()
+                    avg = np.average(sequence.energies)
+                    line = Line2D([avg, avg], [y_min, 0], color=settings.colors[1], lw=2, ls="dotted")
+                    axs2[ax_index].add_artist(line)
 
     # Defining sub-plot names, axis names and ticks and getting y-ranges
     fs = settings.axes_size
