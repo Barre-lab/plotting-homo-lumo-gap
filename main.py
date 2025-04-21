@@ -18,7 +18,7 @@ def main(args):
     """
 
     # Keep this either true or false
-    violion_avg = True
+    violion_avg = False
 
     # Accepted output files
     accepted_files = ["geometry_optimization.out", "geometry-optimization.out",

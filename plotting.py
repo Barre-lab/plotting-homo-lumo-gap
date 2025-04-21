@@ -881,8 +881,8 @@ def plot_avg_violion(args: argparse.Namespace, input_type: str, accepted_files: 
         gaps = gaps[order]
         avg_gaps = avg_gaps[order]
 
-        vp = ax.violinplot(gaps, positions=waters, showextrema=False, points=300)
-        ax.plot(waters, avg_gaps, color=color, marker="o", ms=3, ls="dashed")
+        vp = ax.violinplot(gaps, positions=waters, showextrema=False, points=300, bw_method=0.05)
+        ax.plot(waters, avg_gaps, color=color, marker="o", ms=3, ls="dashed", lw=1)
 
         for pc in vp['bodies']:
             pc.set_facecolor(color)
