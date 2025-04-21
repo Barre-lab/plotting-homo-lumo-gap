@@ -147,8 +147,9 @@ def plot_all_together(args: argparse.Namespace, input_type: str, accepted_files:
         ax1.set_xlabel("")
 
     # Including legend
-    plt.legend(handles=handles, fontsize=fs, loc=args.legend_position, frameon=False,
-               ncol=args.legend_columns, bbox_to_anchor=args.legend_position_coords)
+    if not args.legend_none:
+        plt.legend(handles=handles, fontsize=fs, loc=args.legend_position, frameon=False,
+                   ncol=args.legend_columns, bbox_to_anchor=args.legend_position_coords)
 
     fig.tight_layout()
 
@@ -385,7 +386,7 @@ def plot_all_separate(args: argparse.Namespace, input_type: str, accepted_files:
 
 
 def plot_averages(args: argparse.Namespace, input_type: str, accepted_file: List[str],
-                  settings: classmethod) -> None:
+                  settings: classmethod, violin=False) -> None:
     """
     Plots average homo-lumo gaps and energies as a function of the number water molecules for each
     sequence in all the input collections
@@ -830,6 +831,82 @@ def plot_multiple_distributions(args: argparse.Namespace, input_type: str, accep
                              frameon=False, ncol=args.legend_columns,
                              bbox_to_anchor=args.legend_position_coords)
 
+    if args.plot_name:
+        plt.savefig(args.plot_name)
+
+    plt.show()
+
+
+def plot_avg_violion(args: argparse.Namespace, input_type: str, accepted_files: List[str],
+                     settings: classmethod) -> None:
+    """
+    Combines the display of averages and distributions by creating a violin plot for
+    each sequences in each given collection
+    """
+
+    # Making sure input type is collection
+    if input_type != "collection":
+        raise ValueError("Cannot plot averages for input type: {input_type}")
+
+    # Initializing plot
+    fig, ax = plt.subplots(figsize=settings.figsize)
+
+    # Initializing legends for different states and sequences
+    handles = []
+
+    # Looping over the collections to plot the average of each sequence
+    for index, collection in enumerate(args.input):
+
+        color = settings.colors[index]
+
+        # Finding each sequence in collection
+        sequences = [os.path.join(collection, direc) for direc in os.listdir(collection) if
+                     direc.startswith(("calculations", "configurations"))]
+
+        nsequences = len(sequences)
+        gaps = np.zeros(nsequences, dtype=object)
+        avg_gaps = np.zeros(nsequences, dtype=object)
+        waters = np.zeros(nsequences, dtype=int)
+
+        for subindex, seq in enumerate(sequences):
+            sequence = calculation_sequence(seq, accepted_files, args.ascending_energies,
+                                            args.separate_states, args.select_points)
+
+            gaps[subindex] = sequence.gaps
+            avg_gaps[subindex] = np.average(sequence.gaps)
+            waters[subindex] = sequence.nwater
+
+        order = np.argsort(waters, kind="heapsort")
+        waters = waters[order]
+        gaps = gaps[order]
+        avg_gaps = avg_gaps[order]
+
+        vp = ax.violinplot(gaps, positions=waters, showextrema=False, points=300)
+        ax.plot(waters, avg_gaps, color=color, marker="o", ms=3, ls="dashed")
+
+        for pc in vp['bodies']:
+            pc.set_facecolor(color)
+            pc.set_edgecolor('black')
+
+    # Naming plot axis
+    fs = settings.axes_size
+    ts = settings.tick_size
+
+    ax.set_xlabel("Number of H2O molecules", fontsize=fs)
+    ax.set_ylabel("Average Homo-Lumo gap [eV]", fontsize=fs)
+
+    # Specifying axis ticks
+    ax.tick_params(axis="both", which="major", labelsize=ts)
+    ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+
+    # Including legend
+    if not args.legend_none and len(args.input) > 1:
+        plt.legend(handles=handles, fontsize=fs, loc=args.legend_position, frameon=False,
+                   ncol=args.legend_columns, bbox_to_anchor=args.legend_position_coords)
+
+    plt.tight_layout()
+
+    # Saving plot
     if args.plot_name:
         plt.savefig(args.plot_name)
 

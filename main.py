@@ -6,6 +6,7 @@ from support import find_input_type
 from plotting import plot_all_together
 from plotting import plot_all_separate
 from plotting import plot_averages
+from plotting import plot_avg_violion
 from plotting import plot_distribution
 from plotting import plot_multiple_distributions
 from settings import Settings
@@ -15,6 +16,9 @@ def main(args):
     """
     Main part of the code
     """
+
+    # Keep this either true or false
+    violion_avg = True
 
     # Accepted output files
     accepted_files = ["geometry_optimization.out", "geometry-optimization.out",
@@ -41,7 +45,10 @@ def main(args):
     elif input_type == "sequence" and not args.multi_plot:
         plot_all_together(args, input_type, accepted_files, plot_settings)
     elif input_type == "collection" and args.average:
-        plot_averages(args, input_type, accepted_files, plot_settings)
+        if violion_avg:
+            plot_avg_violion(args, input_type, accepted_files, plot_settings)
+        else:
+            plot_averages(args, input_type, accepted_files, plot_settings)
     elif input_type == "collection" and args.multi_plot:
         plot_all_together(args, input_type, accepted_files, plot_settings)
     elif input_type == "collection":
