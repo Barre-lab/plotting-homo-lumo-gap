@@ -5,6 +5,7 @@ import argparse
 from typing import List
 
 # Third-part libraries
+import pickle
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib import ticker
@@ -156,6 +157,9 @@ def plot_all_together(args: argparse.Namespace, input_type: str, accepted_files:
     # Saving plot
     if args.plot_name:
         plt.savefig(args.plot_name)
+        pickle_name = f"{os.path.splitext(args.plot_name)[0]}.pkl"
+        with open(pickle_name, 'wb') as f:
+            pickle.dump(fig, f)
 
     plt.show()
 
@@ -381,6 +385,9 @@ def plot_all_separate(args: argparse.Namespace, input_type: str, accepted_files:
 
     if args.plot_name:
         plt.savefig(args.plot_name)
+        pickle_name = f"{os.path.splitext(args.plot_name)[0]}.pkl"
+        with open(pickle_name, 'wb') as f:
+            pickle.dump(fig, f)
 
     plt.show()
 
@@ -501,6 +508,9 @@ def plot_averages(args: argparse.Namespace, input_type: str, accepted_file: List
     # Saving plot
     if args.plot_name:
         plt.savefig(args.plot_name)
+        pickle_name = f"{os.path.splitext(args.plot_name)[0]}.pkl"
+        with open(pickle_name, 'wb') as f:
+            pickle.dump(fig, f)
 
     # Saving data
     if args.save_data:
@@ -643,6 +653,9 @@ def plot_distribution(args: argparse.Namespace, input_type: str, accepted_files:
     # Saving plot
     if args.plot_name:
         plt.savefig(args.plot_name)
+        pickle_name = f"{os.path.splitext(args.plot_name)[0]}.pkl"
+        with open(pickle_name, 'wb') as f:
+            pickle.dump(fig, f)
 
     plt.show()
 
@@ -833,6 +846,9 @@ def plot_multiple_distributions(args: argparse.Namespace, input_type: str, accep
 
     if args.plot_name:
         plt.savefig(args.plot_name)
+        pickle_name = f"{os.path.splitext(args.plot_name)[0]}.pkl"
+        with open(pickle_name, 'wb') as f:
+            pickle.dump(fig, f)
 
     plt.show()
 
@@ -909,5 +925,8 @@ def plot_avg_violion(args: argparse.Namespace, input_type: str, accepted_files: 
     # Saving plot
     if args.plot_name:
         plt.savefig(args.plot_name)
+        pickle_name = f"{os.path.splitext(args.plot_name)[0]}.pkl"
+        with open(pickle_name, 'wb') as f:
+            pickle.dump(fig, f)
 
     plt.show()
